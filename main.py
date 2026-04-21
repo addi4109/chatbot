@@ -34,5 +34,5 @@ def chat(req: ChatRequest):
         return {"reply": response.text}
 
     except Exception as e:
-        print("ERROR:", str(e))
-        return {"reply": "Backend error occurred"}
+    print("REAL ERROR:", e)
+    return {"reply": str(e)}
