@@ -31,22 +31,15 @@ def home():
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
-        prompt = f"""
-You are a helpful chatbot for a student website.
-Answer clearly and simply.
-
-User: {req.message}
-"""
+        prompt = f"You are a helpful chatbot. User: {req.message}"
 
         response = model.generate_content(prompt)
 
+        text = getattr(response, "text", None)
+
         return {
-            "reply": response.text
+            "reply": text or "No response from AI"
         }
 
     except Exception as e:
-        # ✅ FULL ERROR OUTPUT (VERY IMPORTANT FOR DEBUGGING)
-        return {
-            "error": str(e),
-            "trace": traceback.format_exc()
-        }
+        return {"reply": "Error", "error": str(e)}
