@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 # 🔐 Correct API key usage (IMPORTANT)
-genai.configure(api_key=os.getenv("AIzaSyCqcuMPwt0JtFnzCp2OQJLolY6nqR9etDM"))
+genai.configure(api_key=os.getenv("AIzaSyBFomKnh6fN8RDHN5ogOQ79G6H1Kgn2sMU"))
 
 # ✅ Use stable model
 model = genai.GenerativeModel("gemini-1.5-flash")
