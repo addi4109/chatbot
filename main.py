@@ -6,7 +6,7 @@ import os
 
 app = FastAPI()
 
-# CORS setup (important for frontend)
+# CORS (frontend access)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,35 +15,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Gemini client
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+# IMPORTANT:
+# On Render, make sure ENV VAR is set:
+# GOOGLE_API_KEY=your_api_key_here
+api_key = os.getenv("GOOGLE_API_KEY")
 
-# Request model
+if not api_key:
+    raise Exception("GOOGLE_API_KEY is not set in environment variables")
+
+# Gemini client
+client = genai.Client(api_key=api_key)
+
 class ChatRequest(BaseModel):
     message: str
 
-# Health check route
 @app.get("/")
 def home():
     return {"message": "Chatbot API is running"}
 
-# Chat route
+# Chat endpoint
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-1.5-pro",   # ✅ stable working model
             contents=req.message
         )
 
         return {"reply": response.text}
 
     except Exception as e:
-        # IMPORTANT: proper indentation fixed
         print("REAL ERROR:", e)
         return {"reply": str(e)}
 
+# Debug: list available models
 @app.get("/models")
 def list_models():
-    models = client.models.list()
-    return {"models": [m.name for m in models]}
+    try:
+        models = client.models.list()
+        return {"models": [m.name for m in models]}
+    except Exception as e:
+        print("MODEL ERROR:", e)
+        return {"error": str(e)}
