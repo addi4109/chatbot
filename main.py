@@ -42,3 +42,8 @@ def chat(req: ChatRequest):
         # IMPORTANT: proper indentation fixed
         print("REAL ERROR:", e)
         return {"reply": str(e)}
+
+@app.get("/models")
+def list_models():
+    models = client.models.list()
+    return {"models": [m.name for m in models]}
