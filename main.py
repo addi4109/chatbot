@@ -1,14 +1,25 @@
 import google.generativeai as genai
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import os
+import traceback
 
-# 🔐 Use environment variable (recommended)
+# 🔐 API KEY (Render ENV recommended)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 app = FastAPI()
+
+# ✅ FIX: CORS (THIS FIXES "Failed to fetch")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for testing (you can restrict later)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ChatRequest(BaseModel):
     message: str
@@ -30,8 +41,12 @@ User: {req.message}
         response = model.generate_content(prompt)
 
         return {
-            "reply": response.text if response.text else "No response"
+            "reply": response.text
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        # ✅ FULL ERROR OUTPUT (VERY IMPORTANT FOR DEBUGGING)
+        return {
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }
