@@ -32,7 +32,7 @@ def home():
 def chat(req: ChatRequest):
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash-001",
+            model="gemini-1.5-flash",
             contents=req.message
         )
 
