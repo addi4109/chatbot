@@ -15,9 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# IMPORTANT:
-# On Render, make sure ENV VAR is set:
-# GOOGLE_API_KEY=your_api_key_here
+# API KEY (Render environment variable)
 api_key = os.getenv("GOOGLE_API_KEY")
 
 if not api_key:
@@ -33,22 +31,21 @@ class ChatRequest(BaseModel):
 def home():
     return {"message": "Chatbot API is running"}
 
-# Chat endpoint
+# CHAT ENDPOINT
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
         response = client.models.generate_content(
-            model="models/gemini-2.5-flash",   # ✅ stable working model
+            model="models/gemini-2.0-flash",   # ✅ SAFE + AVAILABLE from your list
             contents=req.message
         )
-
         return {"reply": response.text}
 
     except Exception as e:
-        print("REAL ERROR:", e)
+        print("CHAT ERROR:", e)
         return {"reply": str(e)}
 
-# Debug: list available models
+# MODEL LIST (debug)
 @app.get("/models")
 def list_models():
     try:
