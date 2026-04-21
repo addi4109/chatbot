@@ -24,7 +24,7 @@ def home():
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("GEMINI_API_KEY")
 
         # 🔥 IMPORTANT: check at runtime, not startup
         if not api_key:
