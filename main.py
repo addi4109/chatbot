@@ -38,7 +38,7 @@ def home():
 def chat(req: ChatRequest):
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-pro",   # ✅ stable working model
+            model="gemini-1.5-pro-002",   # ✅ stable working model
             contents=req.message
         )
 
