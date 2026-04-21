@@ -6,6 +6,7 @@ import os
 
 app = FastAPI()
 
+# CORS setup (important for frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,15 +15,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Gemini client
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
+# Request model
 class ChatRequest(BaseModel):
     message: str
 
+# Health check route
 @app.get("/")
 def home():
     return {"message": "Chatbot API is running"}
 
+# Chat route
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
@@ -34,5 +39,6 @@ def chat(req: ChatRequest):
         return {"reply": response.text}
 
     except Exception as e:
-    print("REAL ERROR:", e)
-    return {"reply": str(e)}
+        # IMPORTANT: proper indentation fixed
+        print("REAL ERROR:", e)
+        return {"reply": str(e)}
