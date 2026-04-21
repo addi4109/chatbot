@@ -4,9 +4,9 @@ from pydantic import BaseModel
 import os
 
 # 🔐 API key from environment (IMPORTANT for deployment)
-genai.configure(api_key=os.getenv("AIzaSyCqcuMPwt0JtFnzCp2OQJLolY6nqR9etDM"))
+genai.configure(api_key="AIzaSyCqcuMPwt0JtFnzCp2OQJLolY6nqR9etDM")
 
-model = genai.GenerativeModel("gemini-pro")
+model = genai.GenerativeModel("gemini-1.5-pro")
 
 app = FastAPI()
 
@@ -19,13 +19,17 @@ def home():
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    prompt = f"""
-    You are a helpful chatbot for a student website.
-    Answer clearly and simply.
+    try:
+        prompt = f"""
+        You are a helpful chatbot for a student website.
+        Answer clearly and simply.
 
-    User: {req.message}
-    """
+        User: {req.message}
+        """
 
-    response = model.generate_content(prompt)
+        response = model.generate_content(prompt)
 
-    return {"reply": response.text}
+        return {"reply": response.text}
+
+    except Exception as e:
+        return {"error": str(e)}
