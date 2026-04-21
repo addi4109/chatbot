@@ -6,6 +6,7 @@ import os
 
 app = FastAPI()
 
+# 🌐 CORS (frontend access fix)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,30 +15,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 📩 Request format
 class ChatRequest(BaseModel):
     message: str
 
+# 🏠 Health check
 @app.get("/")
 def home():
-    return {"status": "ok"}
+    return {"status": "ok", "message": "Chatbot backend running"}
 
+# 💬 Chat endpoint
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
-        api_key = os.getenv("GEMINI_API_KEY")
+        # 🔑 MUST MATCH Render env variable name
+        api_key = os.getenv("GOOGLE_API_KEY")
 
-        # 🔥 IMPORTANT: check at runtime, not startup
         if not api_key:
-            return {"reply": "Missing GOOGLE_API_KEY in environment"}
+            return {"reply": "API key missing. Set GOOGLE_API_KEY in Render."}
 
+        # 🤖 Gemini client
         client = genai.Client(api_key=api_key)
 
+        # 🧠 AI response
         response = client.models.generate_content(
             model="gemini-1.5-flash",
             contents=req.message
         )
 
-        return {"reply": response.text}
+        return {
+            "reply": response.text
+        }
 
     except Exception as e:
-        return {"reply": "Backend error", "error": str(e)}
+        return {
+            "reply": "Backend error occurred",
+            "error": str(e)
+        }
