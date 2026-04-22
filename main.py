@@ -6,7 +6,7 @@ import os
 
 app = FastAPI()
 
-# CORS (frontend access)
+# ✅ CORS (frontend access)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,12 +15,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# OpenRouter API Key (set in Render env)
-API_KEY = os.getenv("GOOGLE_API_KEY")
+# ✅ Correct Environment Variable
+API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 if not API_KEY:
     raise Exception("OPENROUTER_API_KEY is not set in environment variables")
 
+# ✅ Request Model
 class ChatRequest(BaseModel):
     message: str
 
@@ -28,41 +29,53 @@ class ChatRequest(BaseModel):
 def home():
     return {"message": "Chatbot API is running with OpenRouter"}
 
-# CHAT ENDPOINT
+# ✅ List of working models (auto fallback)
+MODELS = [
+    "openchat/openchat-7b",
+    "meta-llama/llama-3-8b-instruct",
+    "nousresearch/nous-capybara-7b"
+]
+
+# ✅ CHAT ENDPOINT
 @app.post("/chat")
 def chat(req: ChatRequest):
-    try:
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "http://localhost",   # optional
-                "X-Title": "My Chatbot"               # optional
-            },
-            json={
-                "model": "mistralai/mistral-7b-instruct",  # free model
-                "messages": [
-                    {"role": "user", "content": req.message}
-                ]
-            }
-        )
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost",  # optional
+        "X-Title": "My Chatbot"
+    }
 
-        data = response.json()
+    for model in MODELS:
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "user", "content": req.message}
+                    ]
+                },
+                timeout=10
+            )
 
-        # handle errors safely
-        if "choices" not in data:
-            return {"reply": "Error: " + str(data)}
+            data = response.json()
 
-        return {
-            "reply": data["choices"][0]["message"]["content"]
-        }
+            # ✅ Success
+            if "choices" in data:
+                return {
+                    "reply": data["choices"][0]["message"]["content"],
+                    "model_used": model
+                }
 
-    except Exception as e:
-        print("CHAT ERROR:", e)
-        return {"reply": "Server Error: " + str(e)}
+        except Exception as e:
+            print(f"Error with model {model}:", e)
 
-# DEBUG ENDPOINT
+    # ❌ If all models fail
+    return {"reply": "All AI models are currently busy. Try again later."}
+
+# ✅ TEST ENDPOINT
 @app.get("/test")
 def test():
     return {"status": "OpenRouter working"}
