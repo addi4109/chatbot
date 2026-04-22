@@ -51,13 +51,20 @@ def chat(req: ChatRequest):
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "user", "content": req.message}
-                    ]
-                },
-                timeout=10
+json={
+    "model": model,
+    "messages": [
+        {
+            "role": "system",
+            "content": "Reply in short, clear answers. Max 3-4 lines. No long paragraphs."
+        },
+        {
+            "role": "user",
+            "content": req.message
+        }
+    ],
+    "max_tokens": 100
+}
             )
 
             data = response.json()
