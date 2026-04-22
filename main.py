@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 # OpenRouter API Key (set in Render env)
-API_KEY = os.getenv("OPENROUTER_API_KEY")
+API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not API_KEY:
     raise Exception("OPENROUTER_API_KEY is not set in environment variables")
