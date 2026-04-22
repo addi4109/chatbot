@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from google import genai
+import requests
 import os
 
 app = FastAPI()
@@ -15,42 +15,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API KEY (Render environment variable)
-api_key = os.getenv("GOOGLE_API_KEY")
+# OpenRouter API Key (set in Render env)
+API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-if not api_key:
-    raise Exception("GOOGLE_API_KEY is not set in environment variables")
-
-# Gemini client
-client = genai.Client(api_key=api_key)
+if not API_KEY:
+    raise Exception("OPENROUTER_API_KEY is not set in environment variables")
 
 class ChatRequest(BaseModel):
     message: str
 
 @app.get("/")
 def home():
-    return {"message": "Chatbot API is running"}
+    return {"message": "Chatbot API is running with OpenRouter"}
 
 # CHAT ENDPOINT
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
-        response = client.models.generate_content(
-            model="models/gemini-2.0-flash",   # ✅ SAFE + AVAILABLE from your list
-            contents=req.message
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost",   # optional
+                "X-Title": "My Chatbot"               # optional
+            },
+            json={
+                "model": "mistralai/mistral-7b-instruct",  # free model
+                "messages": [
+                    {"role": "user", "content": req.message}
+                ]
+            }
         )
-        return {"reply": response.text}
+
+        data = response.json()
+
+        # handle errors safely
+        if "choices" not in data:
+            return {"reply": "Error: " + str(data)}
+
+        return {
+            "reply": data["choices"][0]["message"]["content"]
+        }
 
     except Exception as e:
         print("CHAT ERROR:", e)
-        return {"reply": str(e)}
+        return {"reply": "Server Error: " + str(e)}
 
-# MODEL LIST (debug)
-@app.get("/models")
-def list_models():
-    try:
-        models = client.models.list()
-        return {"models": [m.name for m in models]}
-    except Exception as e:
-        print("MODEL ERROR:", e)
-        return {"error": str(e)}
+# DEBUG ENDPOINT
+@app.get("/test")
+def test():
+    return {"status": "OpenRouter working"}
