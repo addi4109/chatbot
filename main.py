@@ -30,7 +30,7 @@ class ChatRequest(BaseModel):
 def home():
     return {"message": "Chatbot API is running with OpenRouter"}
 
-# ✅ Working Models
+# ✅ Working Models (auto fallback)
 MODELS = [
     "meta-llama/llama-3-8b-instruct",
     "openchat/openchat-7b",
@@ -44,27 +44,32 @@ def chat(req: ChatRequest):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost",
-        "X-Title": "My Chatbot"
+        "HTTP-Referer": "https://your-site.com",  # change after deploy
+        "X-Title": "AI Chatbot"
     }
 
-    # 🔥 Smart system prompt
+    # ✅ System Prompt
     messages = [
         {
             "role": "system",
             "content": (
                 "You are a helpful AI assistant.\n"
-                "- Give short answers (2-3 lines) for normal questions.\n"
-                "- If user asks for code/program, give full working code.\n"
-                "- Format code properly using code blocks.\n"
-                "- Remember user's name if provided."
+                "- Keep answers short (2-3 lines).\n"
+                "- If user asks for code, give FULL working code.\n"
+                "- Always format code inside triple backticks ```.\n"
+                "- Be clear and structured."
             )
         }
     ]
 
-    # ✅ Add previous history
-    for msg in req.history:
-        messages.append(msg)
+    # ✅ Validate & append history
+    if isinstance(req.history, list):
+        for msg in req.history:
+            if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
 
     # ✅ Add current message
     messages.append({
@@ -72,7 +77,7 @@ def chat(req: ChatRequest):
         "content": req.message
     })
 
-    # 🔁 Try models
+    # 🔁 Try models one by one
     for model in MODELS:
         try:
             response = requests.post(
@@ -81,36 +86,42 @@ def chat(req: ChatRequest):
                 json={
                     "model": model,
                     "messages": messages,
-                    "max_tokens": 500,   # 🔥 increased for code
+                    "max_tokens": 800,
                     "temperature": 0.7
                 },
-                timeout=15
+                timeout=20
             )
 
-            data = response.json()
+            # ❗ Handle non-JSON safely
+            try:
+                data = response.json()
+            except:
+                continue
 
-            # ✅ Debug print (optional)
-            print("API Response:", data)
-
-            if "choices" in data:
+            # ✅ Success
+            if "choices" in data and len(data["choices"]) > 0:
                 reply = data["choices"][0]["message"]["content"]
 
                 return {
-                    "reply": reply,
+                    "reply": reply.strip(),
                     "model_used": model
                 }
 
-            # ❌ If API returns error
+            # ❌ Log API error
             if "error" in data:
-                print("API ERROR:", data["error"])
+                print(f"[{model}] API ERROR:", data["error"])
 
+        except requests.exceptions.Timeout:
+            print(f"[{model}] Timeout")
         except Exception as e:
-            print(f"Error with model {model}:", e)
+            print(f"[{model}] Error:", e)
 
-    return {"reply": "All AI models are busy. Try again later."}
+    # ❌ All models failed
+    return {
+        "reply": "⚠️ All AI models are busy right now. Please try again."
+    }
 
-
-# ✅ TEST
+# ✅ TEST ROUTE
 @app.get("/test")
 def test():
     return {"status": "OpenRouter working"}
