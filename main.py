@@ -21,19 +21,19 @@ API_KEY = os.getenv("OPENROUTER_API_KEY")
 if not API_KEY:
     raise Exception("OPENROUTER_API_KEY is not set in environment variables")
 
-# ✅ Request Model (with history)
+# ✅ Request Model
 class ChatRequest(BaseModel):
     message: str
-    history: list = []   # 🔥 important for memory
+    history: list = []
 
 @app.get("/")
 def home():
     return {"message": "Chatbot API is running with OpenRouter"}
 
-# ✅ Models (fallback)
+# ✅ Working Models
 MODELS = [
-    "openchat/openchat-7b",
     "meta-llama/llama-3-8b-instruct",
+    "openchat/openchat-7b",
     "nousresearch/nous-capybara-7b"
 ]
 
@@ -48,25 +48,31 @@ def chat(req: ChatRequest):
         "X-Title": "My Chatbot"
     }
 
-    # 🔥 Build conversation history
+    # 🔥 Smart system prompt
     messages = [
         {
             "role": "system",
-            "content": "Reply in short, clear answers (max 3 lines). Remember user's name if provided."
+            "content": (
+                "You are a helpful AI assistant.\n"
+                "- Give short answers (2-3 lines) for normal questions.\n"
+                "- If user asks for code/program, give full working code.\n"
+                "- Format code properly using code blocks.\n"
+                "- Remember user's name if provided."
+            )
         }
     ]
 
-    # Add previous messages
+    # ✅ Add previous history
     for msg in req.history:
         messages.append(msg)
 
-    # Add current message
+    # ✅ Add current message
     messages.append({
         "role": "user",
         "content": req.message
     })
 
-    # 🔁 Try models one by one
+    # 🔁 Try models
     for model in MODELS:
         try:
             response = requests.post(
@@ -75,14 +81,17 @@ def chat(req: ChatRequest):
                 json={
                     "model": model,
                     "messages": messages,
-                    "max_tokens": 100
+                    "max_tokens": 500,   # 🔥 increased for code
+                    "temperature": 0.7
                 },
-                timeout=10
+                timeout=15
             )
 
             data = response.json()
 
-            # ✅ Success
+            # ✅ Debug print (optional)
+            print("API Response:", data)
+
             if "choices" in data:
                 reply = data["choices"][0]["message"]["content"]
 
@@ -91,11 +100,15 @@ def chat(req: ChatRequest):
                     "model_used": model
                 }
 
+            # ❌ If API returns error
+            if "error" in data:
+                print("API ERROR:", data["error"])
+
         except Exception as e:
             print(f"Error with model {model}:", e)
 
-    # ❌ All failed
     return {"reply": "All AI models are busy. Try again later."}
+
 
 # ✅ TEST
 @app.get("/test")
